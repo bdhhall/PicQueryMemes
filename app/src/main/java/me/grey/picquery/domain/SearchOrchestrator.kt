@@ -37,6 +37,47 @@ class SearchOrchestrator(
     private var searchingLock = false
 
     /**
+     * Search by text with an explicit topK override (used for "load more")
+     */
+    suspend fun searchByTextWithTopK(
+        text: String,
+        topK: Int,
+        range: List<Album>,
+        isSearchAll: Boolean,
+        onSuccess: suspend (MutableList<Pair<Long, Double>>) -> Unit
+    ) {
+        translateAndSearch(text, range, isSearchAll) { translatedText ->
+            val textVector = embeddingService.encodeText(translatedText)
+            performVectorSearchV2(textVector, topK, range, isSearchAll, onSuccess)
+        }
+    }
+
+    /**
+     * Search by image with an explicit topK override (used for "load more")
+     */
+    suspend fun searchByImageWithTopK(
+        bitmap: Bitmap,
+        topK: Int,
+        range: List<Album>,
+        isSearchAll: Boolean,
+        onSuccess: suspend (MutableList<Pair<Long, Double>>) -> Unit
+    ) {
+        withContext(dispatcher) {
+            if (searchingLock) {
+                Timber.tag(TAG).w("Search already in progress")
+                return@withContext
+            }
+            searchingLock = true
+            try {
+                val imageFeatures = embeddingService.encodeBitmap(bitmap)
+                performVectorSearchV2(imageFeatures, topK, range, isSearchAll, onSuccess)
+            } finally {
+                searchingLock = false
+            }
+        }
+    }
+
+    /**
      * Search by text with translation support
      *
      * @param text Search query text (will be translated if needed)
@@ -53,7 +94,7 @@ class SearchOrchestrator(
         translateAndSearch(text, range, isSearchAll) { translatedText ->
             // Encode text to vector before searching
             val textVector = embeddingService.encodeText(translatedText)
-            performVectorSearchV2(textVector, range, isSearchAll, onSuccess)
+            performVectorSearchV2(textVector, null, range, isSearchAll, onSuccess)
         }
     }
 
@@ -80,7 +121,7 @@ class SearchOrchestrator(
 
             try {
                 val imageFeatures = embeddingService.encodeBitmap(bitmap)
-                performVectorSearchV2(imageFeatures, range, isSearchAll, onSuccess)
+                performVectorSearchV2(imageFeatures, null, range, isSearchAll, onSuccess)
             } finally {
                 searchingLock = false
             }
@@ -125,9 +166,11 @@ class SearchOrchestrator(
 
     /**
      * Perform vector search V2 using ObjectBox
+     * @param topKOverride If provided, overrides the configured topK value
      */
     private suspend fun performVectorSearchV2(
         queryVector: FloatArray,
+        topKOverride: Int? = null,
         range: List<Album>,
         isSearchAll: Boolean,
         onSuccess: suspend (MutableList<Pair<Long, Double>>) -> Unit
@@ -147,7 +190,7 @@ class SearchOrchestrator(
 
             val searchResults = objectBoxEmbeddingRepository.searchNearestVectors(
                 queryVector = queryVector,
-                topK = configurationService.getTopK(),
+                topK = topKOverride ?: configurationService.getTopK(),
                 similarityThreshold = configurationService.getMatchThreshold(),
                 albumIds = albumIds
             )

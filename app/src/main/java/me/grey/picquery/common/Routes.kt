@@ -7,5 +7,6 @@ enum class Routes {
     IndexMgr,
     Similar,
     PhotoDetail,
-    Setting
+    Setting,
+    Roulette
 }

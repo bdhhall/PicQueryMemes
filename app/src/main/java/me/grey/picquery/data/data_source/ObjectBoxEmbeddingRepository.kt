@@ -121,6 +121,10 @@ class ObjectBoxEmbeddingRepository(
         )
     }
 
+    fun getRandomPhotoIds(count: Int): List<Long> {
+        return dataSource.getRandomPhotoIds(count)
+    }
+
     fun findSimilarEmbeddings(
         queryVector: FloatArray,
         topK: Int = 30,

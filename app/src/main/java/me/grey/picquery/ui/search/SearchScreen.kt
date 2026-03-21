@@ -12,6 +12,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.InternalTextApi
 import androidx.core.net.toUri
+import me.grey.picquery.common.Routes
 import me.grey.picquery.data.model.Photo
 import org.koin.androidx.compose.koinViewModel
 
@@ -27,6 +28,7 @@ fun SearchScreen(
     val resultList by searchViewModel.resultList.collectAsState()
     val searchState by searchViewModel.searchState.collectAsState()
     val resultMap by searchViewModel.resultMap.collectAsState()
+    val canLoadMore by searchViewModel.canLoadMore.collectAsState()
     var initialQueryDone by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(initialQuery) {
@@ -36,11 +38,17 @@ fun SearchScreen(
 
     LaunchedEffect(queryText) {
         if (!initialQueryDone && queryText.isNotEmpty()) {
-            if (queryText.startsWith("content")) {
-                searchViewModel.startSearch(queryText.toUri())
-                searchViewModel.onQueryChange("")
-            } else {
-                searchViewModel.startSearch(queryText)
+            when {
+                queryText == Routes.Roulette.name -> {
+                    // Roulette mode: results already set in imageSearcher.searchResultIds
+                    searchViewModel.loadFromSearchResultIds()
+                    searchViewModel.onQueryChange("")
+                }
+                queryText.startsWith("content") -> {
+                    searchViewModel.startSearch(queryText.toUri())
+                    searchViewModel.onQueryChange("")
+                }
+                else -> searchViewModel.startSearch(queryText)
             }
             initialQueryDone = true
         }
@@ -61,7 +69,9 @@ fun SearchScreen(
                 resultList = resultList,
                 state = searchState,
                 resultMap = resultMap,
-                onClickPhoto = onClickPhoto
+                onClickPhoto = onClickPhoto,
+                canLoadMore = canLoadMore,
+                onLoadMore = { searchViewModel.loadMore() }
             )
         }
     }

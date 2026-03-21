@@ -1,12 +1,18 @@
 package me.grey.picquery.ui.home
 
-import android.util.Log
+import android.content.Context
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import me.grey.picquery.PicQueryApplication
+import me.grey.picquery.R
+import me.grey.picquery.common.showToast
 import me.grey.picquery.domain.ImageSearcher
 import timber.log.Timber
 
@@ -20,11 +26,13 @@ data class UserGuideTaskState(
 
 class HomeViewModel(
     private val imageSearcher: ImageSearcher,
-    private val preferenceRepository: me.grey.picquery.data.data_source.PreferenceRepository
+    private val preferenceRepository: me.grey.picquery.data.data_source.PreferenceRepository,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "HomeViewModel"
+        private const val ROULETTE_COUNT = 20
     }
 
     private val _searchText = MutableStateFlow("")
@@ -81,6 +89,29 @@ class HomeViewModel(
         // 标记用户已完成引导
         viewModelScope.launch {
             preferenceRepository.setUserGuideCompleted(true)
+        }
+    }
+
+    private val context: Context
+        get() = PicQueryApplication.context
+
+    /**
+     * Pick a random set of indexed photos for the roulette feature.
+     * Calls onComplete (on main thread) when the IDs have been set.
+     */
+    fun triggerRoulette(onComplete: () -> Unit) {
+        viewModelScope.launch(ioDispatcher) {
+            val ids = imageSearcher.pickRandomPhotos(ROULETTE_COUNT)
+            if (ids.isEmpty()) {
+                showToast(context.getString(R.string.roulette_no_index_toast))
+            } else {
+                withContext(Dispatchers.Main) {
+                    // Set search result IDs on the main thread for thread safety
+                    imageSearcher.searchResultIds.clear()
+                    imageSearcher.searchResultIds.addAll(ids)
+                    onComplete()
+                }
+            }
         }
     }
 }

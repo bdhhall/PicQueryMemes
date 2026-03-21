@@ -39,7 +39,9 @@ fun SearchResultGrid(
     resultList: List<Photo>,
     state: SearchState,
     resultMap: Map<Long, Double>,
-    onClickPhoto: (Photo, Int) -> Unit
+    onClickPhoto: (Photo, Int) -> Unit,
+    canLoadMore: Boolean = false,
+    onLoadMore: () -> Unit = {}
 ) {
     when (state) {
         SearchState.NO_INDEX -> UnReadyText()
@@ -80,6 +82,21 @@ fun SearchResultGrid(
                                             onClickPhoto(resultList[index + 1], index + 1)
                                         }
                                     )
+                                }
+                            }
+                        }
+
+                        if (canLoadMore) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 12.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    ElevatedButton(onClick = onLoadMore) {
+                                        Text(text = stringResource(id = R.string.load_more_results))
+                                    }
                                 }
                             }
                         }

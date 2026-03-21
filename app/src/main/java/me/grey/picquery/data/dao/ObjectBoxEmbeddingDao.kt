@@ -108,6 +108,18 @@ class ObjectBoxEmbeddingDao(private val embeddingBox: Box<ObjectBoxEmbedding>) {
         embeddingBox.remove(embeddings)
     }
 
+    fun getRandomPhotoIds(count: Int): List<Long> {
+        val total = embeddingBox.count()
+        if (total == 0L) return emptyList()
+        val effectiveCount = minOf(count.toLong(), total).toInt()
+        // Sample randomly by fetching all IDs and picking a random subset
+        val allIds = embeddingBox.query { orderDesc(ObjectBoxEmbedding_.photoId) }
+            .findIds()
+            .toList()
+        return allIds.shuffled().take(effectiveCount)
+            .mapNotNull { boxId -> embeddingBox.get(boxId)?.photoId }
+    }
+
     fun searchNearestVectors(
         queryVector: FloatArray,
         topK: Int = 10,

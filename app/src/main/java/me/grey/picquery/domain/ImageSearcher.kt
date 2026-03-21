@@ -42,7 +42,8 @@ sealed class SearchTarget(val labelResId: Int, val icon: ImageVector) {
 class ImageSearcher(
     private val embeddingService: EmbeddingService,
     private val configurationService: SearchConfigurationService,
-    private val searchOrchestrator: SearchOrchestrator
+    private val searchOrchestrator: SearchOrchestrator,
+    private val objectBoxEmbeddingRepository: me.grey.picquery.data.data_source.ObjectBoxEmbeddingRepository
 ) {
     val searchRange = mutableStateListOf<Album>()
     var isSearchAll = mutableStateOf(true)
@@ -157,10 +158,56 @@ class ImageSearcher(
         onSuccess: suspend (MutableList<Pair<Long, Double>>) -> Unit
     ) {
         searchOrchestrator.searchByImage(image, range, isSearchAll.value) { results ->
-            // Update search result IDs
             searchResultIds.clear()
             searchResultIds.addAll(results.map { it.first })
             onSuccess(results)
         }
+    }
+
+    /**
+     * Text search V2 with an explicit topK override (used for "load more")
+     * @param text Search query text
+     * @param topK Override for the number of results to retrieve
+     * @param range Album range to search within (defaults to current searchRange)
+     * @param onSuccess Callback with search results as List<Pair<PhotoId, Score>>
+     */
+    suspend fun searchV2WithTopK(
+        text: String,
+        topK: Int,
+        range: List<Album> = searchRange,
+        onSuccess: suspend (MutableList<Pair<Long, Double>>) -> Unit
+    ) {
+        searchOrchestrator.searchByTextWithTopK(text, topK, range, isSearchAll.value) { results ->
+            searchResultIds.clear()
+            searchResultIds.addAll(results.map { it.first })
+            onSuccess(results)
+        }
+    }
+
+    /**
+     * Image search V2 with an explicit topK override (used for "load more")
+     */
+    suspend fun searchWithRangeV2WithTopK(
+        image: Bitmap,
+        topK: Int,
+        range: List<Album> = searchRange,
+        onSuccess: suspend (MutableList<Pair<Long, Double>>) -> Unit
+    ) {
+        searchOrchestrator.searchByImageWithTopK(image, topK, range, isSearchAll.value) { results ->
+            searchResultIds.clear()
+            searchResultIds.addAll(results.map { it.first })
+            onSuccess(results)
+        }
+    }
+
+    /**
+     * Pick a set of random indexed photos for the roulette feature.
+     * Must be called from the main thread (or within a coroutine that dispatches the
+     * searchResultIds update to main).
+     * @param count Number of random photos to pick
+     * @return The list of random photo IDs selected, or empty list if no index exists
+     */
+    fun pickRandomPhotos(count: Int): List<Long> {
+        return objectBoxEmbeddingRepository.getRandomPhotoIds(count)
     }
 }

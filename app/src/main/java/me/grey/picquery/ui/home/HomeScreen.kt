@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
@@ -72,7 +73,8 @@ fun HomeScreen(
     navigateToSearch: (String) -> Unit,
     navigateToSearchWitImage: (Uri) -> Unit,
     navigateToSetting: () -> Unit,
-    navigateToSimilar: () -> Unit
+    navigateToSimilar: () -> Unit,
+    navigateToRoulette: () -> Unit
 ) {
     InitPermissions()
 
@@ -127,7 +129,8 @@ fun HomeScreen(
             onOpenSearchRange = { showSearchRangeBottomSheet = true },
             onOpenSearchConfig = { showSearchFilterBottomSheet = true },
             navigateToSimilar = navigateToSimilar,
-            navigateToSetting = navigateToSetting
+            navigateToSetting = navigateToSetting,
+            navigateToRoulette = navigateToRoulette
         )
     }
 
@@ -156,7 +159,8 @@ private fun MainContent(
     onOpenSearchRange: () -> Unit,
     onOpenSearchConfig: () -> Unit,
     navigateToSimilar: () -> Unit,
-    navigateToSetting: () -> Unit
+    navigateToSetting: () -> Unit,
+    navigateToRoulette: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -174,7 +178,8 @@ private fun MainContent(
             onOpenSearchRange = onOpenSearchRange,
             onOpenSearchConfig = onOpenSearchConfig,
             navigateToSimilar = navigateToSimilar,
-            navigateToSetting = navigateToSetting
+            navigateToSetting = navigateToSetting,
+            navigateToRoulette = navigateToRoulette
         )
 
         GuideSection(
@@ -196,7 +201,8 @@ private fun SearchSection(
     onOpenSearchRange: () -> Unit,
     onOpenSearchConfig: () -> Unit,
     navigateToSimilar: () -> Unit,
-    navigateToSetting: () -> Unit
+    navigateToSetting: () -> Unit,
+    navigateToRoulette: () -> Unit
 ) {
     AnimatedVisibility(visible = !userGuideVisible) {
         Column(
@@ -229,7 +235,8 @@ private fun SearchSection(
                 onOpenSearchRange = onOpenSearchRange,
                 onOpenSearchConfig = onOpenSearchConfig,
                 navigateToSimilar = navigateToSimilar,
-                navigateToSetting = navigateToSetting
+                navigateToSetting = navigateToSetting,
+                onSurpriseMe = { homeViewModel.triggerRoulette(navigateToRoulette) }
             )
         }
     }
@@ -306,7 +313,8 @@ private fun QuickActionsSection(
     onOpenSearchRange: () -> Unit,
     onOpenSearchConfig: () -> Unit,
     navigateToSimilar: () -> Unit,
-    navigateToSetting: () -> Unit
+    navigateToSetting: () -> Unit,
+    onSurpriseMe: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -352,6 +360,16 @@ private fun QuickActionsSection(
             ) {
                 Icon(
                     imageVector = Icons.Filled.FilterList,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            QuickActionButton(
+                title = stringResource(R.string.roulette_button_label),
+                onClick = onSurpriseMe
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Casino,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
