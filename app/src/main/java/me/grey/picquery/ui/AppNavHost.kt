@@ -115,6 +115,7 @@ fun AppNavHost(
                 }
             )
         }
+        composable(Routes.IndexMgr.name) {
             IndexMgrScreen(
                 onNavigateBack = { navController.popBackStack() }
             )

@@ -29,6 +29,7 @@ fun SearchScreen(
     val searchState by searchViewModel.searchState.collectAsState()
     val resultMap by searchViewModel.resultMap.collectAsState()
     val canLoadMore by searchViewModel.canLoadMore.collectAsState()
+    val isLoadingMore by searchViewModel.isLoadingMore.collectAsState()
     var initialQueryDone by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(initialQuery) {
@@ -71,6 +72,7 @@ fun SearchScreen(
                 resultMap = resultMap,
                 onClickPhoto = onClickPhoto,
                 canLoadMore = canLoadMore,
+                isLoadingMore = isLoadingMore,
                 onLoadMore = { searchViewModel.loadMore() }
             )
         }

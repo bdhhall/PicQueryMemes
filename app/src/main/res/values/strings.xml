@@ -137,6 +137,7 @@
 
     <!-- Load More / Roulette Strings -->
     <string name="load_more_results">Load More Results</string>
+    <string name="load_more_max_reached">All available results are shown</string>
     <string name="roulette_button_label">Surprise</string>
     <string name="roulette_no_index_toast">No photos indexed yet. Please index some albums first.</string>
 </resources>
