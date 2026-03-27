@@ -240,24 +240,27 @@ class SearchViewModel(
     private fun loadMoreRoulette() {
         viewModelScope.launch(ioDispatcher) {
             _isLoadingMore.value = true
-            val existingIds = _allResultList.value.map { it.id }.toSet()
-            // Pick extra randoms; over-sample to compensate for duplicates
-            val candidates = imageSearcher.pickRandomPhotos(LOAD_MORE_INCREMENT * 2)
-            val newIds = candidates.filter { it !in existingIds }.take(LOAD_MORE_INCREMENT)
-            if (newIds.isNotEmpty()) {
-                val photos = repo.getPhotoListByIds(newIds)
-                val ordered = reOrderList(photos, newIds)
-                _allResultList.value = _allResultList.value + ordered
-                _displayedCount.value = _allResultList.value.size
-                withContext(Dispatchers.Main) {
-                    imageSearcher.searchResultIds.clear()
-                    imageSearcher.searchResultIds.addAll(_allResultList.value.map { it.id })
+            try {
+                val existingIds = _allResultList.value.map { it.id }.toSet()
+                // Pick extra randoms; over-sample to compensate for duplicates
+                val candidates = imageSearcher.pickRandomPhotos(LOAD_MORE_INCREMENT * 2)
+                val newIds = candidates.filter { it !in existingIds }.take(LOAD_MORE_INCREMENT)
+                if (newIds.isNotEmpty()) {
+                    val photos = repo.getPhotoListByIds(newIds)
+                    val ordered = reOrderList(photos, newIds)
+                    _allResultList.value = _allResultList.value + ordered
+                    _displayedCount.value = _allResultList.value.size
+                    withContext(Dispatchers.Main) {
+                        imageSearcher.searchResultIds.clear()
+                        imageSearcher.searchResultIds.addAll(_allResultList.value.map { it.id })
+                    }
+                    Timber.tag(TAG).d("loadMoreRoulette: added ${ordered.size}, total ${_allResultList.value.size}")
+                } else {
+                    _rouletteExhausted.value = true
                 }
-                Timber.tag(TAG).d("loadMoreRoulette: added ${ordered.size}, total ${_allResultList.value.size}")
-            } else {
-                _rouletteExhausted.value = true
+            } finally {
+                _isLoadingMore.value = false
             }
-            _isLoadingMore.value = false
         }
     }
 

@@ -33,18 +33,21 @@ fun SearchScreen(
     var initialQueryDone by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(initialQuery) {
-        searchViewModel.onQueryChange(initialQuery)
+        if (initialQuery == Routes.Roulette.name) {
+            // Roulette mode: handle directly to avoid onQueryChange clobbering state on back-nav
+            if (!initialQueryDone) {
+                searchViewModel.loadFromSearchResultIds()
+                initialQueryDone = true
+            }
+        } else {
+            searchViewModel.onQueryChange(initialQuery)
+        }
     }
     val queryText by searchViewModel.searchText.collectAsState()
 
     LaunchedEffect(queryText) {
         if (!initialQueryDone && queryText.isNotEmpty()) {
             when {
-                queryText == Routes.Roulette.name -> {
-                    // Roulette mode: results already set in imageSearcher.searchResultIds
-                    searchViewModel.loadFromSearchResultIds()
-                    searchViewModel.onQueryChange("")
-                }
                 queryText.startsWith("content") -> {
                     searchViewModel.startSearch(queryText.toUri())
                     searchViewModel.onQueryChange("")
