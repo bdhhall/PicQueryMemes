@@ -51,7 +51,7 @@ class HomeViewModel(
             // 检查用户是否已经完成过引导
             val guideCompleted = preferenceRepository.isUserGuideCompleted()
             val hasData = imageSearcher.hasEmbedding()
-            
+
             if (guideCompleted || hasData) {
                 // 用户已经完成引导或有索引数据，不需要显示引导
                 currentGuideState.value = UserGuideTaskState(
@@ -59,7 +59,7 @@ class HomeViewModel(
                     indexDone = true
                 )
                 userGuideVisible.value = false
-                
+
                 // 如果有数据但标记未设置，更新标记
                 if (hasData && !guideCompleted) {
                     preferenceRepository.setUserGuideCompleted(true)
@@ -97,7 +97,13 @@ class HomeViewModel(
 
     /**
      * Pick a random set of indexed photos for the roulette feature.
-     * Calls onComplete (on main thread) when the IDs have been set.
+     *
+     * Threading contract: this writes searchResultIds on Main, then navigates via onComplete
+     * (also on Main). The destination's SearchViewModel.loadFromSearchResultIds() reads the IDs
+     * during its LaunchedEffect, which runs after composition — by which time the write is
+     * complete. This relies on navigation and composition both executing synchronously on Main
+     * after onComplete returns. If this assumption is ever violated (e.g., by a concurrent
+     * background search clearing searchResultIds), the roulette screen will show empty results.
      */
     fun triggerRoulette(onComplete: () -> Unit) {
         viewModelScope.launch(ioDispatcher) {

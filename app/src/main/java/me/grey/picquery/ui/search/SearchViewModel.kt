@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.grey.picquery.PicQueryApplication
 import me.grey.picquery.R
 import me.grey.picquery.common.showToast
@@ -61,14 +63,16 @@ class SearchViewModel(
 
     val resultMap: StateFlow<Map<Long, Double>> = _allResultMap.asStateFlow()
 
+    private val _rouletteExhausted = MutableStateFlow(false)
+
     // Show "Load More" when displayed count < total fetched, OR when fetched == topK (may have more in DB)
-    // In roulette mode, always allow loading more as long as there are results
+    // In roulette mode, allow loading more unless all indexed photos are shown
     // Hide when we've reached the max cap and all results are displayed
     val canLoadMore: StateFlow<Boolean> = combine(
-        _allResultList, _displayedCount, _lastFetchedTopK
-    ) { list, displayed, lastTopK ->
+        _allResultList, _displayedCount, _lastFetchedTopK, _rouletteExhausted
+    ) { list, displayed, lastTopK, exhausted ->
         if (isRouletteMode) {
-            list.isNotEmpty()
+            list.isNotEmpty() && !exhausted
         } else {
             list.isNotEmpty() && (displayed < list.size || (lastTopK > 0 && list.size >= lastTopK && lastTopK < MAX_EXTENDED_TOP_K))
         }
@@ -119,6 +123,7 @@ class SearchViewModel(
         lastSearchText = text
         lastSearchUri = null
         isRouletteMode = false
+        _rouletteExhausted.value = false
         _displayedCount.value = 0 // Reset for fresh search
         val topK = imageSearcher.topK.value
         viewModelScope.launch(ioDispatcher) {
@@ -141,6 +146,7 @@ class SearchViewModel(
         lastSearchUri = uri
         lastSearchText = null
         isRouletteMode = false
+        _rouletteExhausted.value = false
         _displayedCount.value = 0 // Reset for fresh search
         val topK = imageSearcher.topK.value
         viewModelScope.launch(ioDispatcher) {
@@ -184,21 +190,21 @@ class SearchViewModel(
         val uri = lastSearchUri
         viewModelScope.launch(ioDispatcher) {
             _isLoadingMore.value = true
-            if (text != null) {
-                imageSearcher.searchV2WithTopK(text, newTopK) { ids ->
-                    updateResults(ids, newTopK, isLoadMore = true)
-                    _isLoadingMore.value = false
-                }
-            } else if (uri != null) {
-                val bitmap = repo.getBitmapFromUri(uri)
-                if (bitmap != null) {
-                    imageSearcher.searchWithRangeV2WithTopK(bitmap, newTopK) { ids ->
+            try {
+                if (text != null) {
+                    imageSearcher.searchV2WithTopK(text, newTopK) { ids ->
                         updateResults(ids, newTopK, isLoadMore = true)
-                        _isLoadingMore.value = false
                     }
-                } else {
-                    _isLoadingMore.value = false
+                } else if (uri != null) {
+                    val bitmap = repo.getBitmapFromUri(uri)
+                    if (bitmap != null) {
+                        imageSearcher.searchWithRangeV2WithTopK(bitmap, newTopK) { ids ->
+                            updateResults(ids, newTopK, isLoadMore = true)
+                        }
+                    }
                 }
+            } finally {
+                _isLoadingMore.value = false
             }
         }
     }
@@ -209,6 +215,7 @@ class SearchViewModel(
      */
     fun loadFromSearchResultIds() {
         isRouletteMode = true
+        _rouletteExhausted.value = false
         lastSearchText = null
         lastSearchUri = null
         viewModelScope.launch(ioDispatcher) {
@@ -242,7 +249,13 @@ class SearchViewModel(
                 val ordered = reOrderList(photos, newIds)
                 _allResultList.value = _allResultList.value + ordered
                 _displayedCount.value = _allResultList.value.size
+                withContext(Dispatchers.Main) {
+                    imageSearcher.searchResultIds.clear()
+                    imageSearcher.searchResultIds.addAll(_allResultList.value.map { it.id })
+                }
                 Timber.tag(TAG).d("loadMoreRoulette: added ${ordered.size}, total ${_allResultList.value.size}")
+            } else {
+                _rouletteExhausted.value = true
             }
             _isLoadingMore.value = false
         }

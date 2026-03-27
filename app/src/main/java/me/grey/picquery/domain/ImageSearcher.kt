@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.vector.ImageVector
 import me.grey.picquery.R
 import me.grey.picquery.common.encodeProgressCallback
+import me.grey.picquery.data.data_source.ObjectBoxEmbeddingRepository
 import me.grey.picquery.data.model.Album
 import me.grey.picquery.data.model.Photo
 import java.util.AbstractMap
@@ -43,7 +44,7 @@ class ImageSearcher(
     private val embeddingService: EmbeddingService,
     private val configurationService: SearchConfigurationService,
     private val searchOrchestrator: SearchOrchestrator,
-    private val objectBoxEmbeddingRepository: me.grey.picquery.data.data_source.ObjectBoxEmbeddingRepository
+    private val objectBoxEmbeddingRepository: ObjectBoxEmbeddingRepository
 ) {
     val searchRange = mutableStateListOf<Album>()
     var isSearchAll = mutableStateOf(true)
