@@ -6,15 +6,22 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,7 +46,10 @@ fun SearchResultGrid(
     resultList: List<Photo>,
     state: SearchState,
     resultMap: Map<Long, Double>,
-    onClickPhoto: (Photo, Int) -> Unit
+    onClickPhoto: (Photo, Int) -> Unit,
+    canLoadMore: Boolean = false,
+    isLoadingMore: Boolean = false,
+    onLoadMore: () -> Unit = {}
 ) {
     when (state) {
         SearchState.NO_INDEX -> UnReadyText()
@@ -50,9 +60,13 @@ fun SearchResultGrid(
             if (resultList.isEmpty()) {
                 NoResultText()
             } else {
+                val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
+                val gridState = rememberLazyGridState()
                 LazyVerticalGrid(
+                    state = gridState,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
                     columns = GridCells.Adaptive(100.dp),
+                    contentPadding = PaddingValues(bottom = navBarPadding.calculateBottomPadding()),
                     content = {
                         val padding = Modifier.padding(3.dp)
 
@@ -80,6 +94,25 @@ fun SearchResultGrid(
                                             onClickPhoto(resultList[index + 1], index + 1)
                                         }
                                     )
+                                }
+                            }
+                        }
+
+                        if (canLoadMore || isLoadingMore) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 12.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isLoadingMore) {
+                                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                                    } else {
+                                        ElevatedButton(onClick = onLoadMore) {
+                                            Text(text = stringResource(id = R.string.load_more_results))
+                                        }
+                                    }
                                 }
                             }
                         }

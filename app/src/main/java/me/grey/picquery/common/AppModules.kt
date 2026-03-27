@@ -32,7 +32,8 @@ private val viewModelModules = module {
     viewModel {
         HomeViewModel(
             imageSearcher = get(),
-            preferenceRepository = get()
+            preferenceRepository = get(),
+            ioDispatcher = get()
         )
     }
     viewModel {
@@ -110,7 +111,8 @@ private val domainModules = module {
         ImageSearcher(
             embeddingService = get(),
             configurationService = get(),
-            searchOrchestrator = get()
+            searchOrchestrator = get(),
+            objectBoxEmbeddingRepository = get()
         )
     }
 

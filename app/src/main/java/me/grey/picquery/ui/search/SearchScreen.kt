@@ -12,6 +12,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.InternalTextApi
 import androidx.core.net.toUri
+import me.grey.picquery.common.Routes
 import me.grey.picquery.data.model.Photo
 import org.koin.androidx.compose.koinViewModel
 
@@ -27,20 +28,31 @@ fun SearchScreen(
     val resultList by searchViewModel.resultList.collectAsState()
     val searchState by searchViewModel.searchState.collectAsState()
     val resultMap by searchViewModel.resultMap.collectAsState()
+    val canLoadMore by searchViewModel.canLoadMore.collectAsState()
+    val isLoadingMore by searchViewModel.isLoadingMore.collectAsState()
     var initialQueryDone by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(initialQuery) {
-        searchViewModel.onQueryChange(initialQuery)
+        if (initialQuery == Routes.Roulette.name) {
+            // Roulette mode: handle directly to avoid onQueryChange clobbering state on back-nav
+            if (!initialQueryDone) {
+                searchViewModel.loadFromSearchResultIds()
+                initialQueryDone = true
+            }
+        } else {
+            searchViewModel.onQueryChange(initialQuery)
+        }
     }
     val queryText by searchViewModel.searchText.collectAsState()
 
     LaunchedEffect(queryText) {
         if (!initialQueryDone && queryText.isNotEmpty()) {
-            if (queryText.startsWith("content")) {
-                searchViewModel.startSearch(queryText.toUri())
-                searchViewModel.onQueryChange("")
-            } else {
-                searchViewModel.startSearch(queryText)
+            when {
+                queryText.startsWith("content") -> {
+                    searchViewModel.startSearch(queryText.toUri())
+                    searchViewModel.onQueryChange("")
+                }
+                else -> searchViewModel.startSearch(queryText)
             }
             initialQueryDone = true
         }
@@ -61,7 +73,10 @@ fun SearchScreen(
                 resultList = resultList,
                 state = searchState,
                 resultMap = resultMap,
-                onClickPhoto = onClickPhoto
+                onClickPhoto = onClickPhoto,
+                canLoadMore = canLoadMore,
+                isLoadingMore = isLoadingMore,
+                onLoadMore = { searchViewModel.loadMore() }
             )
         }
     }

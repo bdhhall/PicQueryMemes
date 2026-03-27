@@ -134,4 +134,10 @@
     <!-- Translation Error Strings -->
     <string name="translation_error_log">Chinese to English translation error!\n%1$s</string>
     <string name="translation_error_toast">Translation model error, please report to developer!</string>
+
+    <!-- Load More / Roulette Strings -->
+    <string name="load_more_results">Load More Results</string>
+    <string name="load_more_max_reached">All available results are shown</string>
+    <string name="roulette_button_label">Surprise</string>
+    <string name="roulette_no_index_toast">No photos indexed yet. Please index some albums first.</string>
 </resources>

@@ -80,7 +80,8 @@ fun AppNavHost(
                     navController.navigate("${Routes.Search.name}/$query")
                 },
                 navigateToSetting = { navController.navigate(Routes.Setting.name) },
-                navigateToSimilar = { navController.navigate(Routes.Similar.name) }
+                navigateToSimilar = { navController.navigate(Routes.Similar.name) },
+                navigateToRoulette = { navController.navigate(Routes.Roulette.name) }
             )
         }
         composable("${Routes.Search.name}/{query}") {
@@ -102,6 +103,15 @@ fun AppNavHost(
                 initialPage = initialIndex,
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+        composable(Routes.Roulette.name) {
+            SearchScreen(
+                initialQuery = Routes.Roulette.name,
+                onNavigateBack = { navController.popBackStack() },
+                onClickPhoto = { _, index ->
+                    navController.navigate("${Routes.Display.name}/$index")
                 }
             )
         }
